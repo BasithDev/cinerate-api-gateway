@@ -92,7 +92,7 @@ const serviceMap = {
   '/api/review': process.env.REVIEW_SERVICE_URL
 };
 
-app.use(async (req, res, next) => {
+app.use(async (req, res) => {
     const basePath = Object.keys(serviceMap).find((path) => req.originalUrl.startsWith(path));
     const serviceURL = serviceMap[basePath];
   
