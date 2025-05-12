@@ -3,9 +3,8 @@ name: API Gateway CD
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
-    paths:
-      - 'api-gateway/**'
+    branches:
+      - main
 
 jobs:
   build-and-push:
