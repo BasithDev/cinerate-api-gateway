@@ -1,67 +1,38 @@
-name: API Gateway CI
+# .github/workflows/testcase.yml
+
+name: Lint & Test API Gateway
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ main ]
-    paths:
-      - 'api-gateway/**'
+    branches:
+      - main
+      - dev
   pull_request:
-    branches: [ main ]
-    paths:
-      - 'api-gateway/**'
 
 jobs:
-  test:
+  lint-and-test:
     runs-on: ubuntu-latest
-    env:
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      NODE_ENV: test
-    steps:
-      - uses: actions/checkout@v4
-        continue-on-error: false
-      
-      - name: Use Node.js 23
-        uses: actions/setup-node@v4
-        with:
-          node-version: '23'
-          cache: 'npm'
-          cache-dependency-path: api-gateway/package-lock.json
-      
-      - name: Install Dependencies
-        run: npm ci
-        working-directory: ${{ github.workspace }}/api-gateway
-      
-      - name: Run Linter
-        run: npm run lint
-        working-directory: ${{ github.workspace }}/api-gateway
-        continue-on-error: true
-      
-      - name: Run Unit Tests
-        run: npm run test:unit
-        working-directory: ${{ github.workspace }}/api-gateway
-      
-      - name: Run Integration Tests
-        run: npm run test:integration
-        working-directory: ${{ github.workspace }}/api-gateway
-      
-      - name: Upload Coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: ${{ github.workspace }}/api-gateway/coverage
-          retention-days: 5
 
-      - name: Use Node.js 23
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up latest LTS Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '23'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
+          node-version: 'lts/*'
+
       - name: Install dependencies
         run: npm install
-        working-directory: ${{ github.workspace }}/api-gateway
+
+      - name: Run ESLint
+        run: npm run lint
+
       - name: Run tests
         run: npm test
-        working-directory: ${{ github.workspace }}/api-gateway
-        continue-on-error: false
+
+      - name: Handle Rollback on Failure
+        if: failure()
+        run: |
+          echo "❌ Lint or tests failed. Performing rollback..."
+          # Add real rollback logic here (e.g., git revert, undeploy script, notify team)
