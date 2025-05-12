@@ -1,7 +1,7 @@
-// eslint.config.js
+// eslint.config.cjs
 const eslintPluginNode = require('eslint-plugin-node');
 
-export default [
+module.exports = [
   {
     files: ['**/*.js'],
     languageOptions: {
