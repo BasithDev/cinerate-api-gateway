@@ -16,19 +16,20 @@ jobs:
     runs-on: ubuntu-latest
     env:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    defaults:
+      run:
+        working-directory: ./api-gateway
     steps:
       - uses: actions/checkout@v4
         continue-on-error: false
       - name: Use Node.js 23
         uses: actions/setup-node@v4
         with:
-          node-version: 23
-        continue-on-error: false
+          node-version: '23'
+          cache: 'npm'
+          cache-dependency-path: api-gateway/package-lock.json
       - name: Install dependencies
         run: npm install
-        working-directory: api-gateway
-        continue-on-error: false
       - name: Run tests
         run: npm test
-        working-directory: api-gateway
         continue-on-error: false
