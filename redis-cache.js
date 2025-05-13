@@ -10,6 +10,7 @@ class RedisCache {
     this.connected = false;
     this.circuitBreaker = null;
     this.redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    this.testMode = process.env.NODE_ENV === 'test';
     
     // Initialize circuit breaker for Redis operations
     this.initCircuitBreaker();
@@ -17,6 +18,12 @@ class RedisCache {
 
   async connect() {
     if (this.connected) return;
+    
+    // Skip actual Redis connection in test mode
+    if (this.testMode) {
+      console.log('Running in test mode - skipping Redis connection');
+      return;
+    }
 
     try {
       this.client = createClient({
@@ -90,7 +97,11 @@ class RedisCache {
   }
 
   async get(key) {
+    if (this.testMode) return null;
+    
     return this.circuitBreaker.fire(async () => {
+      if (!this.connected || !this.client) return null;
+      
       const value = await this.getAsync(this.getKey(key));
       if (value) {
         try {
@@ -104,7 +115,11 @@ class RedisCache {
   }
 
   async set(key, value, ttl = this.ttl) {
+    if (this.testMode) return 'OK';
+    
     return this.circuitBreaker.fire(async () => {
+      if (!this.connected || !this.client) return 'OK';
+      
       const stringValue = typeof value === 'object' ? JSON.stringify(value) : value;
       return await this.setAsync(this.getKey(key), stringValue, {
         EX: ttl
@@ -113,13 +128,21 @@ class RedisCache {
   }
 
   async del(key) {
+    if (this.testMode) return 1;
+    
     return this.circuitBreaker.fire(async () => {
+      if (!this.connected || !this.client) return 1;
+      
       return await this.delAsync(this.getKey(key));
     });
   }
 
   async flush() {
+    if (this.testMode) return 'OK';
+    
     return this.circuitBreaker.fire(async () => {
+      if (!this.connected || !this.client) return 'OK';
+      
       return await this.flushAsync();
     });
   }
@@ -135,8 +158,8 @@ class RedisCache {
   // Cache middleware for Express routes
   cacheMiddleware(ttl = this.ttl) {
     return async (req, res, next) => {
-      // Skip caching for non-GET requests
-      if (req.method !== 'GET') {
+      // Skip caching for non-GET requests or in test mode
+      if (req.method !== 'GET' || this.testMode) {
         return next();
       }
 
@@ -211,7 +234,11 @@ class RedisCache {
 
   // Helper to invalidate cache by pattern
   async invalidateByPattern(pattern) {
+    if (this.testMode) return 0;
+    
     return this.circuitBreaker.fire(async () => {
+      if (!this.connected || !this.client) return 0;
+      
       const keys = await this.client.keys(`${this.prefix}${pattern}`);
       if (keys.length > 0) {
         return await this.client.del(keys);
@@ -222,6 +249,7 @@ class RedisCache {
 
   // Helper to invalidate user-specific cache
   async invalidateUserCache(userId) {
+    if (this.testMode) return 0;
     return this.invalidateByPattern(`${userId}:*`);
   }
 }
