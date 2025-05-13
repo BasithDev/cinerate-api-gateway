@@ -29,6 +29,6 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/cinerate-api-gateway:latest
-            ${{ secrets.DOCKER_USERNAME }}/cinerate-api-gateway:v1.0.2
+            ${{ secrets.DOCKER_USERNAME }}/cinerate-api-gateway:v1.0.3
             ${{ secrets.DOCKER_USERNAME }}/cinerate-api-gateway:${{ github.sha }}
         continue-on-error: false
