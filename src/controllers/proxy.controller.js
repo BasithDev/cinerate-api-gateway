@@ -37,6 +37,12 @@ class ProxyController {
     try {
       // For GET requests, check cache first
       if (req.method === 'GET' && this.redisCache.connected) {
+        // Skip caching for health endpoints
+        if (req.path.includes('/health')) {
+          // Forward directly to service without caching
+          return await this.forwardRequest(req, res, serviceURL);
+        }
+        
         // Use different cache keys for authenticated vs non-authenticated requests
         const userId = req.user?.id || 'anonymous';
         const cacheKey = userId !== 'anonymous' ? `${userId}:${req.originalUrl}` : req.originalUrl;
