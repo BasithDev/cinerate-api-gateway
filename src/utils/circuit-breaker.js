@@ -66,14 +66,14 @@ function createCircuitBreaker(servicePath, logger) {
   } else if (servicePath === '/api/review') {
     breaker.fallback(() => {
       return {
-        status: 200,
+        status: 503,
         data: { reviews: [], fallback: true, message: 'Review service temporarily unavailable' }
       };
     });
   } else if (servicePath === '/api/watchlist') {
     breaker.fallback(() => {
       return {
-        status: 200,
+        status: 503,
         data: { watchlist: [], fallback: true, message: 'Watchlist service temporarily unavailable' }
       };
     });
