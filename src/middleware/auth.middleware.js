@@ -36,6 +36,7 @@ const authMiddleware = (req, res, next) => {
   
   // Check public path prefixes
   if (
+    req.path === '/health' ||
     req.path.startsWith('/api/user/login') ||
     req.path.startsWith('/api/user/signup') ||
     req.path.startsWith('/api/user/test') ||
