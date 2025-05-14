@@ -40,7 +40,7 @@ class ProxyController {
         // Skip caching for health endpoints
         if (req.path.includes('/health')) {
           // Forward directly to service without caching
-          return await this.forwardRequest(req, res, serviceURL);
+          return await this.forwardRequest(req, res, serviceURL, basePath);
         }
         
         // Use different cache keys for authenticated vs non-authenticated requests
@@ -177,6 +177,44 @@ class ProxyController {
       }
       
       logger.error(`Error calling ${basePath}: ${err.message}`);
+      return res.status(err.response?.status || 500).json(err.response?.data || { error: 'Internal Gateway Error' });
+    }
+  }
+
+  /**
+   * Forward a request directly to a service without caching
+   * Used for health endpoints and other non-cacheable requests
+   */
+  async forwardRequest(req, res, serviceURL, basePath) {
+    try {
+      // Construct the URL for the microservice request
+      const pathSuffix = req.originalUrl.substring(basePath.length) || '/';
+      const url = serviceURL + pathSuffix;
+      const circuitBreaker = this.circuitBreakers[basePath];
+      
+      // Record start time for metrics
+      const startTime = Date.now();
+      
+      const response = await circuitBreaker.fire(url, req.method, req.body);
+      
+      // Record response time for metrics
+      const responseTime = (Date.now() - startTime) / 1000; // in seconds
+      metrics.serviceResponseTime.observe(
+        { service: basePath, endpoint: req.path, status_code: response.status },
+        responseTime
+      );
+      
+      return res.status(response.status).send(response.data);
+    } catch (err) {
+      if (err.type === 'open') {
+        logger.error(`Service ${basePath} circuit is open, failing fast`);
+        return res.status(503).json({ error: 'Service temporarily unavailable' });
+      } else if (err.type === 'timeout') {
+        logger.error(`Request to ${basePath} timed out`);
+        return res.status(504).json({ error: 'Service request timed out' });
+      }
+      
+      logger.error(`Error forwarding request to ${basePath}: ${err.message}`);
       return res.status(err.response?.status || 500).json(err.response?.data || { error: 'Internal Gateway Error' });
     }
   }
