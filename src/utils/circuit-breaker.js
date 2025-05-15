@@ -11,10 +11,10 @@ const axios = require('axios');
 function createCircuitBreaker(servicePath, logger) {
   // Default retry options
   const retryOptions = {
-    retries: 3,
+    retries: 5,  // Increased from 3 to 5 retries
     factor: 2,
     minTimeout: 1000,
-    maxTimeout: 5000,
+    maxTimeout: 8000,  // Increased from 5000 to 8000 ms
     randomize: true,
     onRetry: (error, attempt) => {
       logger.warn(`Retry attempt ${attempt} for ${servicePath} due to: ${error.message}`);
@@ -23,7 +23,7 @@ function createCircuitBreaker(servicePath, logger) {
 
   // Default circuit breaker options
   const circuitBreakerOptions = {
-    timeout: 5000, // Time in ms before request is considered failed
+    timeout: 10000, // Increased timeout to 10 seconds to match user service settings
     errorThresholdPercentage: 50, // When 50% of requests fail, open the circuit
     resetTimeout: 30000, // Time to wait before testing if service is available again
     rollingCountTimeout: 60000, // Time window for error rate calculation
@@ -40,7 +40,10 @@ function createCircuitBreaker(servicePath, logger) {
             url,
             method,
             data,
-            timeout: 2500
+            timeout: 8000,  // Increased from 2500 to 8000 ms to match other timeout settings
+            headers: {
+              'Content-Type': 'application/json'
+            }
           });
           return response;
         } catch (err) {
